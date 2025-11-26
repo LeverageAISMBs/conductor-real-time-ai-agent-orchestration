@@ -1,5 +1,5 @@
 # Conductor — Real-time AI Agent Orchestration
-[![Deploy to Cloudflare][cloudflarebutton]]
+[![Deploy to Cloudflare][![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/LeverageAISMBs/conductor-real-time-ai-agent-orchestration)]
 Conductor is a production-ready dashboard and toolkit for orchestrating, monitoring, and managing real-time multi-agent conversations on Cloudflare's edge infrastructure. Built on the Cloudflare Agents SDK, it leverages Durable Objects (CHAT_AGENT and APP_CONTROLLER), R2 for persistence, and Vectorize for semantic search to enable seamless agent collaboration. The intuitive UI provides session management, real-time streaming chats, integration hooks, and secure authentication examples (API Keys and JWT).
 This project extends the vite-cfagents-runner template, delivering a polished frontend with shadcn/ui components and a robust backend for agent coordination. It's designed for rapid prototyping and production deployment of AI agent systems.
 ## Features
