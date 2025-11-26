@@ -52,7 +52,7 @@ export class ChatAgent extends Agent<Env, ChatState> {
     return Response.json({ success: true, data: this.state });
   }
   private async persistAndIndex(userMessage: Message, assistantMessage: Message) {
-    const { R2_BUCKET, VECTORIZE_INDEX } = this.env as any;
+    const { R2_BUCKET, VECTORIZE_INDEX } = this.env;
     // Persist to R2
     if (R2_BUCKET) {
       try {
