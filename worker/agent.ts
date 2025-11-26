@@ -113,7 +113,7 @@ export class ChatAgent extends Agent<Env, ChatState> {
             });
             const assistantMessage = createMessage('assistant', response.content, response.toolCalls);
             this.setState({ ...this.state, messages: [...this.state.messages, assistantMessage], isProcessing: false, streamingMessage: '' });
-            this.ctx.waitUntil(this.persistAndIndex(userMessage, assistantMessage));
+            this.ctx?.waitUntil(this.persistAndIndex(userMessage, assistantMessage));
           } catch (error) {
             console.error('Streaming error:', error);
             const errorMessage = 'Sorry, I encountered an error.';
@@ -129,7 +129,7 @@ export class ChatAgent extends Agent<Env, ChatState> {
       const response = await this.chatHandler.processMessage(message, this.state.messages);
       const assistantMessage = createMessage('assistant', response.content, response.toolCalls);
       this.setState({ ...this.state, messages: [...this.state.messages, assistantMessage], isProcessing: false });
-      this.ctx.waitUntil(this.persistAndIndex(userMessage, assistantMessage));
+      this.ctx?.waitUntil(this.persistAndIndex(userMessage, assistantMessage));
       return Response.json({ success: true, data: this.state });
     } catch (error) {
       console.error('Chat processing error:', error);

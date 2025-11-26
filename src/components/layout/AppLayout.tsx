@@ -10,7 +10,7 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
   const location = useLocation();
   const isRoomView = location.pathname.startsWith('/rooms/');
   return (
-    <SidebarProvider>
+    <SidebarProvider persist>
       <div className={cn("flex h-screen bg-background", isRoomView && "overflow-hidden")}>
         <AppSidebar />
         <SidebarInset className={cn("flex-1", isRoomView ? "flex flex-col" : "overflow-y-auto")}>

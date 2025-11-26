@@ -163,4 +163,8 @@
   .text-body {
     @apply text-base sm:text-lg text-muted-foreground leading-relaxed;
   }
+  /* Add transition for sidebar width */
+  aside[data-testid="sidebar"] {
+    @apply transition-all duration-300 ease-in-out;
+  }
 }

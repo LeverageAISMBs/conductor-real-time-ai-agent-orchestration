@@ -4,9 +4,38 @@ import { ChatAgent } from './agent';
 import { API_RESPONSES } from './config';
 import { Env, getAppController, registerSession, unregisterSession, updateSessionActivity } from "./core-utils";
 import { authMiddleware } from './auth';
-import pino from 'pino';
 import { createMiddleware } from 'hono/factory';
-const logger = pino({ level: 'info' });
+ // Lightweight cross-runtime logger compatible with the pino API used in this file.
+ // Uses console.* under the hood and supports logger.info/warn/error/debug and logger.child().
+ function createSimpleLogger(options: { level?: 'error' | 'warn' | 'info' | 'debug'; bindings?: Record<string, unknown> } = {}) {
+   const levelOrder: Record<'error' | 'warn' | 'info' | 'debug', number> = { error: 0, warn: 1, info: 2, debug: 3 };
+   const level: 'error' | 'warn' | 'info' | 'debug' = options.level || 'info';
+   const minLevel = levelOrder[level] ?? 2;
+   const bindings: Record<string, unknown> = options.bindings || {};
+   function format(levelName: string, args: unknown[], localBindings?: Record<string, unknown>): string {
+     const ts = new Date().toISOString();
+     let meta = { ...(bindings || {}), ...(localBindings || {}) };
+     let msg = '';
+     if (args.length === 1) {
+       if (typeof args[0] === 'string') msg = String(args[0]);
+       else meta = { ...meta, ...(args[0] as Record<string, unknown> || {}) };
+     } else if (args.length >= 2) {
+       if (typeof args[0] === 'object') meta = { ...meta, ...(args[0] as Record<string, unknown> || {}) };
+       msg = String(args[1] ?? '');
+     }
+     const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : '';
+     return `${ts} [${levelName.toUpperCase()}]${metaStr ? ' ' + metaStr : ''}${msg ? ' - ' + msg : ''}`;
+   }
+   const logger = {
+     child: (childBindings?: Record<string, unknown>) => createSimpleLogger({ level, bindings: { ...bindings, ...(childBindings || {}) } }),
+     error: (...args: unknown[]) => { if (levelOrder['error'] <= minLevel) { console.error(format('error', args)); } },
+     warn: (...args: unknown[]) => { if (levelOrder['warn'] <= minLevel) { console.warn(format('warn', args)); } },
+     info: (...args: unknown[]) => { if (levelOrder['info'] <= minLevel) { console.info(format('info', args)); } },
+     debug: (...args: unknown[]) => { if (levelOrder['debug'] <= minLevel) { console.debug(format('debug', args)); } },
+   };
+   return logger;
+ }
+const logger = createSimpleLogger({ level: 'info' });
 const ipRateLimit = new Map<string, { count: number; lastReset: number }>();
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 100;
