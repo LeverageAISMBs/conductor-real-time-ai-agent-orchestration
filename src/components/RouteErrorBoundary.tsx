@@ -43,6 +43,15 @@ export function RouteErrorBoundary() {
       />
     );
   }
+  if (!error) {
+    return (
+      <ErrorFallback
+        title="No Error"
+        message="This boundary was rendered without an error. This should not happen."
+        statusMessage="Configuration error"
+      />
+    );
+  }
   return (
     <ErrorFallback
       title="Unexpected Error"

@@ -2,6 +2,7 @@
  * Core utilities for the Cloudflare Agents template
  * STRICTLY DO NOT MODIFY THIS FILE - Hidden from AI to prevent breaking core functionality
  */
+import type { R2Bucket, VectorizeIndex } from '@cloudflare/workers-types';
 import type { AppController } from './app-controller';
 import type { ChatAgent } from './agent';
 export interface Env {
@@ -13,6 +14,8 @@ export interface Env {
     APP_CONTROLLER: DurableObjectNamespace<AppController>;
     API_KEY?: string;
     JWT_SECRET?: string;
+    R2_BUCKET?: R2Bucket;
+    VECTORIZE_INDEX?: VectorizeIndex;
 }
 /**
  * Get AppController stub for session management

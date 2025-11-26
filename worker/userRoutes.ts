@@ -96,20 +96,20 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         }
     });
     app.delete('/api/sessions/:sessionId', authMiddleware, async (c) => {
+        const sessionId = c.req.param('sessionId');
         try {
-            const sessionId = c.req.param('sessionId');
             const deleted = await unregisterSession(c.env, sessionId);
             if (!deleted) return c.json({ success: false, error: 'Session not found' }, { status: 404 });
             logger.info({ sessionId }, 'Deleted session');
             return c.json({ success: true, data: { deleted: true } });
         } catch (error) {
-            logger.error({ err: error, sessionId }, 'Failed to delete session');
+            logger.error({ err: error, sessionId: sessionId }, 'Failed to delete session');
             return c.json({ success: false, error: 'Failed to delete session' }, { status: 500 });
         }
     });
     app.put('/api/sessions/:sessionId/title', authMiddleware, async (c) => {
+        const sessionId = c.req.param('sessionId');
         try {
-            const sessionId = c.req.param('sessionId');
             const { title } = await c.req.json();
             if (!title || typeof title !== 'string') return c.json({ success: false, error: 'Title is required' }, { status: 400 });
             const controller = getAppController(c.env);
@@ -118,7 +118,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             logger.info({ sessionId }, 'Updated session title');
             return c.json({ success: true, data: { title } });
         } catch (error) {
-            logger.error({ err: error, sessionId }, 'Failed to update session title');
+            logger.error({ err: error, sessionId: sessionId }, 'Failed to update session title');
             return c.json({ success: false, error: 'Failed to update session title' }, { status: 500 });
         }
     });
@@ -144,8 +144,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         }
     });
     app.post('/api/agent-message/:sessionId', rateLimitMiddleware, authMiddleware, async (c) => {
+        const sessionId = c.req.param('sessionId');
         try {
-            const sessionId = c.req.param('sessionId');
             const agent = await getAgentByName<Env, ChatAgent>(c.env.CHAT_AGENT, sessionId);
             await updateSessionActivity(c.env, sessionId);
             const url = new URL(c.req.url);
@@ -156,7 +156,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                 body: c.req.raw.body
             }));
         } catch (error) {
-            logger.error({ err: error, sessionId: c.req.param('sessionId') }, 'Agent message proxy error');
+            logger.error({ err: error, sessionId: sessionId }, 'Agent message proxy error');
             return c.json({ success: false, error: 'Failed to proxy message to agent' }, { status: 500 });
         }
     });
