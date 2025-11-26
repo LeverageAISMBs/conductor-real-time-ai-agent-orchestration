@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toaster, toast } from 'sonner';
 import { chatService, formatTime, renderToolCall, generateSessionTitle } from '@/lib/chat';
-import type { ChatState, SessionInfo } from '../../worker/types';
+import type { ChatState, SessionInfo } from '~/worker/types';
 import { AgentHeader } from '@/components/AgentHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 export function RoomView() {

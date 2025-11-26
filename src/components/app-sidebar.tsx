@@ -1,83 +1,50 @@
-/* Edit this file to customize the sidebar */
 import React from "react";
-import { Home, Layers, Compass, Star, Settings, LifeBuoy } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
+import { Home, MessageSquare, GitBranch, Settings, Bot } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
   SidebarHeader,
-  SidebarSeparator,
-  SidebarInput,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuAction,
-  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
-
+import { cn } from "@/lib/utils";
+const navItems = [
+  { to: "/", icon: Home, label: "Dashboard" },
+  { to: "/rooms", icon: MessageSquare, label: "Rooms" },
+  { to: "/integrations", icon: GitBranch, label: "Integrations" },
+  { to: "/settings", icon: Settings, label: "Settings" },
+];
 export function AppSidebar(): JSX.Element {
+  const location = useLocation();
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-1">
-          <div className="h-6 w-6 rounded-md bg-gradient-to-br from-indigo-500 to-purple-500" />
-          <span className="text-sm font-medium">Template</span>
-        </div>
-        <SidebarInput placeholder="Search" />
+        <NavLink to="/" className="flex items-center gap-2.5 px-2 py-1">
+          <div className="h-8 w-8 rounded-lg bg-gradient-primary center">
+            <Bot className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-lg font-display font-semibold">Conductor</span>
+        </NavLink>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive>
-                <a href="#"><Home /> <span>Home</span></a>
+        <SidebarMenu>
+          {navItems.map((item) => (
+            <SidebarMenuItem key={item.to}>
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname === item.to || (item.to !== "/" && location.pathname.startsWith(item.to))}
+              >
+                <NavLink to={item.to}>
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <a href="#"><Layers /> <span>Projects</span></a>
-              </SidebarMenuButton>
-              <SidebarMenuAction>
-                <Star className="size-4" />
-              </SidebarMenuAction>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <a href="#"><Compass /> <span>Explore</span></a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-
-        <SidebarSeparator />
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Quick Links</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <a href="#"><Star /> <span>Starred</span></a>
-              </SidebarMenuButton>
-              <SidebarMenuBadge>5</SidebarMenuBadge>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <a href="#"><LifeBuoy /> <span>Support</span></a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <a href="#"><Settings /> <span>Settings</span></a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
+          ))}
+        </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
-        <div className="px-2 text-xs text-muted-foreground">A simple shadcn sidebar</div>
-      </SidebarFooter>
     </Sidebar>
   );
 }

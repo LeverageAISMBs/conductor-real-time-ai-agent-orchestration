@@ -1,28 +1,27 @@
 import React from "react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-
+import { useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
 type AppLayoutProps = {
   children: React.ReactNode;
-  container?: boolean;
-  className?: string;
-  contentClassName?: string;
 };
-
-export function AppLayout({ children, container = false, className, contentClassName }: AppLayoutProps): JSX.Element {
+export function AppLayout({ children }: AppLayoutProps): JSX.Element {
+  const location = useLocation();
+  const isRoomView = location.pathname.startsWith('/rooms/');
   return (
-    <SidebarProvider defaultOpen={false}>
-      <AppSidebar />
-      <SidebarInset className={className}>
-        <div className="absolute left-2 top-2 z-20">
-          <SidebarTrigger />
-        </div>
-        {container ? (
-          <div className={"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-12" + (contentClassName ? ` ${contentClassName}` : "")}>{children}</div>
-        ) : (
-          children
-        )}
-      </SidebarInset>
+    <SidebarProvider>
+      <div className={cn("flex h-screen bg-background", isRoomView && "overflow-hidden")}>
+        <AppSidebar />
+        <SidebarInset className={cn("flex-1", isRoomView ? "flex flex-col" : "overflow-y-auto")}>
+          <div className="absolute left-2 top-2 z-20 md:hidden">
+            <SidebarTrigger />
+          </div>
+          <div className={cn(isRoomView && "flex-1 flex flex-col overflow-hidden")}>
+            {children}
+          </div>
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }
