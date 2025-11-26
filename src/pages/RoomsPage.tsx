@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { PlusCircle, Trash2, Search } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { chatService } from '@/lib/chat';
-import type { SessionInfo } from '~/worker/types';
+import type { SessionInfo } from '../../worker/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,

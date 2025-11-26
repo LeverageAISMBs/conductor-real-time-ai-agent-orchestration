@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Toaster, toast } from 'sonner';
 import { chatService } from '@/lib/chat';
-import type { SessionInfo } from '~/worker/types';
+import type { SessionInfo } from '../../worker/types';
 import { Skeleton } from '@/components/ui/skeleton';
 export function HomePage() {
   const navigate = useNavigate();

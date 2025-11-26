@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, PlusCircle, Bot } from 'lucide-react';
 import { MODELS } from '@/lib/chat';
-import { SessionInfo } from '~/worker/types';
+import type { SessionInfo } from '../../worker/types';
 interface AgentHeaderProps {
   session: SessionInfo | null;
   currentModel: string;

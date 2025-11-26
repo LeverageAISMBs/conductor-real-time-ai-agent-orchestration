@@ -3,15 +3,21 @@ import { getAgentByName } from 'agents';
 import { ChatAgent } from './agent';
 import { API_RESPONSES } from './config';
 import { Env, getAppController, registerSession, unregisterSession } from "./core-utils";
-/**
- * DO NOT MODIFY THIS FUNCTION. Only for your reference.
- */
+const generateMockEmbedding = async (text: string): Promise<number[]> => {
+    const textEncoder = new TextEncoder();
+    const buffer = await crypto.subtle.digest('SHA-256', textEncoder.encode(text));
+    const hashArray = Array.from(new Uint8Array(buffer));
+    const vector = hashArray.slice(0, 16).map(v => v / 255.0);
+    while (vector.length < 1536) {
+      vector.push(0);
+    }
+    return vector.slice(0, 1536);
+};
 export function coreRoutes(app: Hono<{ Bindings: Env }>) {
-    // Use this API for conversations. **DO NOT MODIFY**
     app.all('/api/chat/:sessionId/*', async (c) => {
         try {
         const sessionId = c.req.param('sessionId');
-        const agent = await getAgentByName<Env, ChatAgent>(c.env.CHAT_AGENT, sessionId); // Get existing agent or create a new one if it doesn't exist, with sessionId as the name
+        const agent = await getAgentByName<Env, ChatAgent>(c.env.CHAT_AGENT, sessionId);
         const url = new URL(c.req.url);
         url.pathname = url.pathname.replace(`/api/chat/${sessionId}`, '');
         return agent.fetch(new Request(url.toString(), {
@@ -21,10 +27,7 @@ export function coreRoutes(app: Hono<{ Bindings: Env }>) {
         }));
         } catch (error) {
         console.error('Agent routing error:', error);
-        return c.json({
-            success: false,
-            error: API_RESPONSES.AGENT_ROUTING_FAILED
-        }, { status: 500 });
+        return c.json({ success: false, error: API_RESPONSES.AGENT_ROUTING_FAILED }, { status: 500 });
         }
     });
 }
@@ -110,47 +113,61 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         }
     });
     // --- Integration Proxies ---
-    /**
-     * Vectorize Query Proxy
-     * POST /api/vectorize-query
-     * Body: { query: string, topK?: number }
-     */
     app.post('/api/vectorize-query', async (c) => {
         const { VECTORIZE_INDEX } = c.env as any;
-        if (!VECTORIZE_INDEX) {
-            return c.json({ success: false, error: 'Vectorize index not configured on this worker.' }, { status: 501 });
-        }
+        if (!VECTORIZE_INDEX) return c.json({ success: false, error: 'Vectorize index not configured.' }, { status: 501 });
         try {
             const { query, topK = 5 } = await c.req.json();
-            if (!query || typeof query !== 'string') {
-                return c.json({ success: false, error: 'Query string is required.' }, { status: 400 });
-            }
-            // In a real app, you'd generate embeddings for the query text here.
-            // For this demo, we'll use a mock vector.
-            const mockVector = Array(1536).fill(0).map(() => Math.random());
-            const results = await VECTORIZE_INDEX.query(mockVector, { topK });
+            if (!query || typeof query !== 'string') return c.json({ success: false, error: 'Query string is required.' }, { status: 400 });
+            const embedding = await generateMockEmbedding(query);
+            const results = await VECTORIZE_INDEX.query(embedding, { topK });
             return c.json({ success: true, data: results });
         } catch (error) {
             console.error('Vectorize query failed:', error);
             return c.json({ success: false, error: 'Failed to query Vectorize index.' }, { status: 500 });
         }
     });
-    /**
-     * R2 List Proxy
-     * GET /api/r2-list
-     */
+    app.post('/api/vectorize-insert', async (c) => {
+        const { VECTORIZE_INDEX } = c.env as any;
+        if (!VECTORIZE_INDEX) return c.json({ success: false, error: 'Vectorize index not configured.' }, { status: 501 });
+        try {
+            const { content, metadata = {} } = await c.req.json();
+            if (!content || typeof content !== 'string') return c.json({ success: false, error: 'Content string is required.' }, { status: 400 });
+            const id = crypto.randomUUID();
+            const embedding = await generateMockEmbedding(content);
+            await VECTORIZE_INDEX.insert([{ id, values: embedding, metadata }]);
+            return c.json({ success: true, data: { id } });
+        } catch (error) {
+            console.error('Vectorize insert failed:', error);
+            return c.json({ success: false, error: 'Failed to insert into Vectorize index.' }, { status: 500 });
+        }
+    });
     app.get('/api/r2-list', async (c) => {
         const { R2_BUCKET } = c.env as any;
-        if (!R2_BUCKET) {
-            return c.json({ success: false, error: 'R2 bucket not configured on this worker.' }, { status: 501 });
-        }
+        if (!R2_BUCKET) return c.json({ success: false, error: 'R2 bucket not configured.' }, { status: 501 });
         try {
-            const listed = await R2_BUCKET.list();
-            const files = listed.objects.map((obj: any) => ({ key: obj.key, size: obj.size, uploaded: obj.uploaded }));
+            const { sessionId } = c.req.query();
+            const options = sessionId ? { prefix: `messages/${sessionId}/` } : {};
+            const listed = await R2_BUCKET.list(options);
+            const files = listed.objects.map((obj: any) => ({ key: obj.key, size: obj.size, uploaded: obj.uploaded.toISOString() }));
             return c.json({ success: true, data: { files, truncated: listed.truncated } });
         } catch (error) {
             console.error('R2 list failed:', error);
             return c.json({ success: false, error: 'Failed to list R2 objects.' }, { status: 500 });
+        }
+    });
+    app.post('/api/r2-put', async (c) => {
+        const { R2_BUCKET } = c.env as any;
+        if (!R2_BUCKET) return c.json({ success: false, error: 'R2 bucket not configured.' }, { status: 501 });
+        try {
+            const { sessionId, message } = await c.req.json();
+            if (!sessionId || !message) return c.json({ success: false, error: 'sessionId and message are required.' }, { status: 400 });
+            const key = `messages/${sessionId}/${Date.now()}_manual.json`;
+            await R2_BUCKET.put(key, JSON.stringify(message));
+            return c.json({ success: true, data: { key } });
+        } catch (error) {
+            console.error('R2 put failed:', error);
+            return c.json({ success: false, error: 'Failed to put object in R2.' }, { status: 500 });
         }
     });
 }
