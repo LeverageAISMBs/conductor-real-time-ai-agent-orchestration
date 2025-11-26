@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { getAgentByName } from 'agents';
 import { ChatAgent } from './agent';
 import { API_RESPONSES } from './config';
-import { Env, getAppController, registerSession, unregisterSession } from "./core-utils";
+import { Env, getAppController, registerSession, unregisterSession, updateSessionActivity } from "./core-utils";
+import { authMiddleware } from './auth';
 const generateMockEmbedding = async (text: string): Promise<number[]> => {
     const textEncoder = new TextEncoder();
     const buffer = await crypto.subtle.digest('SHA-256', textEncoder.encode(text));
@@ -14,6 +15,8 @@ const generateMockEmbedding = async (text: string): Promise<number[]> => {
     return vector.slice(0, 1536);
 };
 export function coreRoutes(app: Hono<{ Bindings: Env }>) {
+    // Apply auth middleware to the chat endpoint
+    app.use('/api/chat/:sessionId/chat', authMiddleware);
     app.all('/api/chat/:sessionId/*', async (c) => {
         try {
         const sessionId = c.req.param('sessionId');
@@ -43,7 +46,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             return c.json({ success: false, error: 'Failed to retrieve sessions' }, { status: 500 });
         }
     });
-    app.post('/api/sessions', async (c) => {
+    app.post('/api/sessions', authMiddleware, async (c) => {
         try {
             const body = await c.req.json().catch(() => ({}));
             const { title, sessionId: providedSessionId, firstMessage } = body;
@@ -67,7 +70,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             return c.json({ success: false, error: 'Failed to create session' }, { status: 500 });
         }
     });
-    app.delete('/api/sessions/:sessionId', async (c) => {
+    app.delete('/api/sessions/:sessionId', authMiddleware, async (c) => {
         try {
             const sessionId = c.req.param('sessionId');
             const deleted = await unregisterSession(c.env, sessionId);
@@ -78,7 +81,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             return c.json({ success: false, error: 'Failed to delete session' }, { status: 500 });
         }
     });
-    app.put('/api/sessions/:sessionId/title', async (c) => {
+    app.put('/api/sessions/:sessionId/title', authMiddleware, async (c) => {
         try {
             const sessionId = c.req.param('sessionId');
             const { title } = await c.req.json();
@@ -102,7 +105,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             return c.json({ success: false, error: 'Failed to retrieve session stats' }, { status: 500 });
         }
     });
-    app.delete('/api/sessions', async (c) => {
+    app.delete('/api/sessions', authMiddleware, async (c) => {
         try {
             const controller = getAppController(c.env);
             const deletedCount = await controller.clearAllSessions();
@@ -110,6 +113,26 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         } catch (error) {
             console.error('Failed to clear all sessions:', error);
             return c.json({ success: false, error: 'Failed to clear all sessions' }, { status: 500 });
+        }
+    });
+    // --- Agent-to-Agent Communication ---
+    app.post('/api/agent-message/:sessionId', authMiddleware, async (c) => {
+        try {
+            const sessionId = c.req.param('sessionId');
+            const agent = await getAgentByName<Env, ChatAgent>(c.env.CHAT_AGENT, sessionId);
+            // Update activity to show agent is "active"
+            await updateSessionActivity(c.env, sessionId);
+            // Proxy the request to the agent's chat handler
+            const url = new URL(c.req.url);
+            url.pathname = '/chat'; // Route to the agent's chat endpoint
+            return agent.fetch(new Request(url.toString(), {
+                method: 'POST',
+                headers: c.req.header(),
+                body: c.req.raw.body
+            }));
+        } catch (error) {
+            console.error('Agent message proxy error:', error);
+            return c.json({ success: false, error: 'Failed to proxy message to agent' }, { status: 500 });
         }
     });
     // --- Integration Proxies ---
@@ -169,5 +192,9 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             console.error('R2 put failed:', error);
             return c.json({ success: false, error: 'Failed to put object in R2.' }, { status: 500 });
         }
+    });
+    // --- Auth Test Route ---
+    app.get('/api/echo', authMiddleware, async (c) => {
+        return c.json({ success: true, message: 'Authenticated successfully!' });
     });
 }
